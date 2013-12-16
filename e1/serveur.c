@@ -5,63 +5,68 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 
-int main(int argc, char* argv[])
-{
+#define MESSAGE_SIZE 500
 
-        int d_s, res;
+void usage(void){
+	fprintf(stderr,"Utilisation : ./serveur \"Port utilisé\"\n");
+}
 
-        struct sockaddr_in myAdd;
+int main(int argc, char** argv){
 
-        d_s = socket(AF_INET, SOCK_DGRAM, 0);
-        if(d_s == -1)
-        {
-                printf("Erreur de création de la socket!\n");
-                perror("L'erreur est la suivante ");
+	if(argc < 2){
+		usage();
+		return -1;
+	}
+
+	struct sockaddr_in serverAdd;
+     	struct sockaddr_in clientAdd;
+
+        int sSocket;
+  	int taille = sizeof(clientAdd);
+	
+	char pid[5];
+        char message1[MESSAGE_SIZE];
+        char message2[MESSAGE_SIZE];
+	
+        
+	/*Création de la socket d'écoute*/
+        sSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if(sSocket == -1){
+                perror("Erreur de création de la socket : N°"+ errno);
                 return 0;
         }
 
-        myAdd.sin_family = AF_INET;
-        myAdd.sin_port = htons(atoi(argv[1]));
-        myAdd.sin_addr.s_addr = INADDR_ANY;
+        serverAdd.sin_family = AF_INET;
+        serverAdd.sin_port = htons(atoi(argv[1]));
+        serverAdd.sin_addr.s_addr = INADDR_ANY;
+        memset(serverAdd.sin_zero, 0, 8);
 
-        memset(myAdd.sin_zero, 0, 8);
-
-
-
-        res = bind(d_s, (struct sockaddr*) &myAdd, sizeof(myAdd));
-
-        if(res == -1)
-        {
-                printf("Erreur lors du bind!\n");
+        if(bind(sSocket, (struct sockaddr*) &serverAdd, sizeof(serverAdd)) == -1) {
+                perror("Erreur lors du bind !\n");
                 return 0;
         }
 
-        struct sockaddr_in client;
+	fprintf(stdout,"-------------\n");
+	fprintf(stdout," Server Side \n");
+	fprintf(stdout,"-------------\n");
 
-        int taille = sizeof(client);
-        char mess[10000];
-        char mess2[100];
+	/*Reception des informations du client*/
+	fprintf(stdout,"Recieved :\n");
+        recvfrom(sSocket, message1, MESSAGE_SIZE, 0,(struct sockaddr*) &clientAdd, &taille);
+        recvfrom(sSocket, message2, MESSAGE_SIZE, 0,(struct sockaddr*) &clientAdd, &taille);
+        fprintf(stdout,"\tMessage : %s\n\tClient PID : %s\n", message1, message2);
+	
+	sprintf(pid,"%d",getpid());
 
-        int recev = recvfrom(d_s, mess, 10000, 0,(struct sockaddr*) &client, &taille);
-        recev = recvfrom(d_s, mess2, 100, 0,(struct sockaddr*) &client, &taille);
-        if(recev == -1)
-        {
-                perror("ne reçoit rien");
-                return 0;
-        }
+	/*Envoi des informations au client*/
+	fprintf(stdout,"Sent :\n");
+	sprintf(message1,"%s%s",message1," (ACK from server)");
+        sendto(sSocket, (void *) message1, sizeof(message1), 0, (struct sockaddr*) &clientAdd, sizeof(clientAdd));
+	sendto(sSocket, (void *) pid, sizeof(pid), 0, (struct sockaddr*) &clientAdd, sizeof(clientAdd));			
+	fprintf(stdout,"\tMessage : %s\n",message1);
+	fprintf(stdout,"\tServer PID : %s\n",pid);
 
-				
-
-        printf("message : %s\n et PID : %s\n", mess, mess2);
-
-        // doit retourner le PID et la chaine reçu
-        int send_message = sendto(d_s, (void *) mess, sizeof(mess), 0, (struct sockaddr*) &client, sizeof(client));
-
-				int pid = getpid();
-				char pid_s[5]="";
-				sprintf(pid_s,"%d",pid);
-				send_message = sendto(d_s, (void *) pid_s, sizeof(pid_s), 0, (struct sockaddr*) &client, sizeof(client));
-
-        printf("Tout marche!!!%d\n",getpid());
+        printf("End of line...\n");
         return 0;
 }

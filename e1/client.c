@@ -7,64 +7,76 @@
 #include <netdb.h>
 
 #define h_addr h_addr_list[0]
+#define MESSAGE_SIZE 500
 
-int main(int argc, char* argv[])
-{
-	
-	/*socket du client*/
-	int d_s, res;
-	struct sockaddr_in myAdd;
+void usage(void){
+	fprintf(stderr,"Utilisation : ./client \"nom du serveur\" \"Port utilisé\" \"Chaine à envoyer\"\n");
+}
 
-	d_s = socket(AF_INET, SOCK_DGRAM, 0);
-	if(d_s == -1)
-	{
-		printf("Erreur de création de la socket!\n");
-		perror("L'erreur est la suivante ");
-		return 0;
+int main(int argc, char** argv){
+
+	if(argc < 4){
+		usage();
+		return -1;
 	}
-
-	myAdd.sin_family = AF_INET;
-	myAdd.sin_port = htons(9000);
-	myAdd.sin_addr.s_addr = INADDR_ANY;
-	memset(myAdd.sin_zero, 0, 8);
-
-	
-
-	res = bind(d_s, (struct sockaddr*) &myAdd, sizeof(myAdd));
-	if(res == -1)
-	{
-		printf("Erreur lors du bind!\n");
-		return 0;
-	}
-
-	/*socket du serveur*/
-	struct sockaddr_in serveur;
+	struct sockaddr_in localAdd;
+	struct sockaddr_in serverAdd;
 	struct hostent* h_s;
-	
-	h_s = gethostbyname(argv[1]);
-	if(h_s == NULL)
-	{
-		printf("Erreur avec le résultat de gethostbyname()\n");
+
+	int cSocket,result;
+	int size = sizeof(serverAdd);
+
+	char pid[5];
+	char message1[MESSAGE_SIZE];
+	char message2[MESSAGE_SIZE];
+
+	/*Socket locale du client*/
+	cSocket = socket(AF_INET, SOCK_DGRAM, 0);
+	if(cSocket == -1){
+		perror("Erreur lors de la création de la socket");
+		return 0;
 	}
-	serveur.sin_family = AF_INET;
-	memcpy(&serveur.sin_addr.s_addr, h_s->h_addr, 4);
-	serveur.sin_port = htons(atoi(argv[2]));
 
-	int pid = getpid();
-	char pid_s[5]="";
-	sprintf(pid_s,"%d",pid);
+	localAdd.sin_family = AF_INET;
+	localAdd.sin_port = htons(9000);
+	localAdd.sin_addr.s_addr = INADDR_ANY;
+	memset(localAdd.sin_zero, 0, 8);
 
-	int send_message = sendto(d_s, (void *) argv[3], sizeof(argv[3]), 0, (struct sockaddr*) &serveur, sizeof(serveur));
-	send_message = sendto(d_s, (void *) pid_s, sizeof(pid_s), 0, (struct sockaddr*) &serveur, sizeof(serveur));
+	result = bind(cSocket, (struct sockaddr*) &localAdd, sizeof(localAdd));
 
-	int taille = sizeof(serveur);
-	char mess[10000];
-	char mess2[100];
-	int recev = recvfrom(d_s, mess, 10000, 0,(struct sockaddr*) &serveur, &taille);
-	recev = recvfrom(d_s, mess2, 100, 0,(struct sockaddr*) &serveur, &taille);
-	printf("message : %s\n et PID : %s\n", mess, mess2);
+	if(result == -1){
+		perror("Erreur lors du bind!\n");
+		return 0;
+	}	
+	
+	/*Adresse du serverAdd distant à joindre*/
+	h_s = gethostbyname(argv[1]);
+	if(h_s == NULL){
+		perror("Erreur : gethostbyname()\n");
+		return 0;
+	}
+	serverAdd.sin_family = AF_INET;
+	serverAdd.sin_port = htons(atoi(argv[2]));
+	memcpy(&serverAdd.sin_addr.s_addr, h_s->h_addr, 4);
 
-	printf("Tout marche!!!%s\n",pid_s);
-
-	return 0;
+	fprintf(stdout,"-------------\n");
+	fprintf(stdout," Client Side \n");
+	fprintf(stdout,"-------------\n");
+	sprintf(pid,"%d",getpid());
+	
+	/*Envoi des données au serveur*/
+	fprintf(stdout,"Sent :\n");
+	sendto(cSocket, (void *) argv[3], sizeof(argv[3]), 0, (struct sockaddr*) &serverAdd, sizeof(serverAdd));
+	sendto(cSocket, (void *) pid, sizeof(pid), 0, (struct sockaddr*) &serverAdd, sizeof(serverAdd));
+  	fprintf(stdout,"\tMessage : %s\n",argv[3]); 
+	fprintf(stdout,"\tClient PID : %s\n",pid); 
+	
+	/*Reception de la réponse*/
+	fprintf(stdout,"Recieved :\n");
+	recvfrom(cSocket, message1, MESSAGE_SIZE, 0,(struct sockaddr*) &serverAdd, &size);
+	recvfrom(cSocket, message2, MESSAGE_SIZE, 0,(struct sockaddr*) &serverAdd, &size);
+	printf("\tMessage : %s\n\tServer PID : %s\n", message1, message2);
+	
+	printf("End of line...\n");
+        return 0;
 }
