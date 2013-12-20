@@ -14,6 +14,8 @@
 
 #define TAILLE_MAX 256
 
+#define STDIN_FS 0
+
 void usage(void){
 	fprintf(stderr,"Utilisation : ./serveur \"Port HTTP\" \"Port LOG\"\n");
 }
@@ -82,6 +84,14 @@ int main(int argc, char* argv[])
  		perror("Erreur lors du listen (HTTP) !\n");
                 return -1;
 	}
+	
+	fprintf(stdout,"---------------\n");
+	fprintf(stdout,"- HTTP Server -\n");
+	fprintf(stdout,"---------------\n");
+	
+	fprintf(stdout,"\n Serveur en route.\n");
+	fprintf(stdout,"\n\tAppuyez sur \"ENTREE\" pour interrompre l'execution\n\n");
+	fprintf(stdout,"---------------\n");
 
 	while(1) {
 		FD_ZERO(&rdfs);
@@ -91,6 +101,9 @@ int main(int argc, char* argv[])
 
 		/* Ajout du socket pour l'accès aux logs */
 		FD_SET(logSocket, &rdfs);
+
+		/* Ajout du descripteur d'entrée standard stdin*/
+		FD_SET(STDIN_FS, &rdfs);
 
 		int max = select(FD_SETSIZE, &rdfs, NULL, NULL, NULL);
 
@@ -135,7 +148,7 @@ int main(int argc, char* argv[])
 					timestamp = time(NULL);
 					strftime(dbuffer, sizeof(dbuffer), "%A %d %B %Y - %X.", localtime(&timestamp));
 					logfile = fopen("log_server.txt","a");
-					fprintf(logfile, "Client %s connected the %s => ",inet_ntoa(clientAdd.sin_addr),dbuffer);
+					fprintf(logfile, "Client %s connected on %s => ",inet_ntoa(clientAdd.sin_addr),dbuffer);
 	    				switch(res){
 						case 0:
 							fprintf(logfile,"requested page.html\n");
@@ -170,6 +183,9 @@ int main(int argc, char* argv[])
 					fclose(logfile);
 					write(logService, (void*) log, strlen(log));
 					close(logService);
+				} else if(FD_ISSET(STDIN_FS,&rdfs)){
+					fprintf(stdout,"Interruption clavier : Terminaison du programme !\n");
+					break;				
 				}
 			}
 		}
