@@ -5,7 +5,16 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 
+void usage(void){
+	fprintf(stderr,"Utilisation : ./serveur \"Port utilisé\"\n");
+}
+
 int main(int argc, char* argv[]){
+
+	if(argc < 2){
+		usage();
+		return -1;
+	}
 
         struct sockaddr_in serverAdd;
 	struct sockaddr_in clientAdd;
@@ -33,7 +42,7 @@ int main(int argc, char* argv[]){
                 return -1;
         }
 
-        /* 1 clientAdd en écoute */
+        /* En écoute */
 	if(listen(lSocket,1) == -1){
  		perror("Erreur lors du listen !\n");
                 return -1;
@@ -48,13 +57,11 @@ int main(int argc, char* argv[]){
 
 	
 	read(lService, (void*) requete, sizeof(requete));
-	fprintf(stdout,"La requete du navigateur est  : \n---------\n %s \n---------\n", requete);
-
+	fprintf(stdout,"Request from browser  : \n---------\n%s---------\n", requete);
 	write(lService, (void*) reponse, sizeof(reponse));
-	
-	close(lSocket);		
+	fprintf(stdout,"Answer from server : %s \n",reponse);
 	close(lService);
-
+	close(lSocket);		
         fprintf(stdout,"End of line...\n");
 				
         return 0;
