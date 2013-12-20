@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 
 	char requete[1000];
 	char reponse[65536];
+	char* message;
 
 	int lSocket, result;
 	int byteCount;
@@ -65,11 +66,16 @@ int main(int argc, char* argv[])
 	}
 
 	sprintf(requete,"%s%s%s%s%s%s%s","GET /",argv[3]," HTTP/1.1\nHost: ",argv[1],":",argv[2],"\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20131029 Firefox/17.0\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\nAccept-Language: en-US,en;q=0.5\nAccept-Encoding: gzip, deflate\nConnection: Keep-Alive\n\n");	
-
+	
 	send(lSocket, (void*) requete, sizeof(requete),0);
-
-	byteCount = recv(lSocket, (void*) reponse, sizeof(reponse),0);
-	printf("Reponse du serveur : \n%s\n",reponse);
+	message = (char*) malloc(sizeof(char)*512);	
+	while(byteCount = recv(lSocket, (void*) reponse, sizeof(reponse),0)){
+		if(strlen(reponse) + strlen(message) > sizeof(message)){
+			message = realloc(message, (strlen(reponse) + strlen(message))*512*sizeof(char));		
+		}		
+		sprintf(message,"%s%s",message,reponse);	
+	}
+	printf("Reponse du serveur : \n%s\n",message);
 	close(lSocket);
 	return 0;
 }
