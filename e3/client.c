@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 	struct hostent* h_s;
 
 	char requete[1000];
-	char reponse[1000];
+	char reponse[65536];
 
 	int lSocket, result;
 	int byteCount;
@@ -64,14 +64,12 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	sprintf(requete,"%s%s%s%s%s%s%s","GET /",argv[3]," HTTP/1.1\nHost: ",argv[1],":",argv[2],"\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20131029 Firefox/17.0\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\nAccept-Language: en-US,en;q=0.5\nAccept-Encoding: gzip, deflate\nConnection: keep-alive\n\n");	
+	sprintf(requete,"%s%s%s%s%s%s%s","GET /",argv[3]," HTTP/1.1\nHost: ",argv[1],":",argv[2],"\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20131029 Firefox/17.0\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\nAccept-Language: en-US,en;q=0.5\nAccept-Encoding: gzip, deflate\nConnection: Keep-Alive\n\n");	
 
-	write(lSocket, (void*) requete, sizeof(requete));
+	send(lSocket, (void*) requete, sizeof(requete),0);
 
 	byteCount = recv(lSocket, (void*) reponse, sizeof(reponse),0);
-	reponse[byteCount-1] = '\0';
 	printf("Reponse du serveur : \n%s\n",reponse);
-	shutdown(lSocket,2);
 	close(lSocket);
 	return 0;
 }
