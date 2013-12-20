@@ -30,7 +30,7 @@ int main(int argc, char** argv){
 	char message1[MESSAGE_SIZE];
 	char message2[MESSAGE_SIZE];
 
-	/*Socket locale du client*/
+	/*Socket du client*/
 	cSocket = socket(AF_INET, SOCK_DGRAM, 0);
 	if(cSocket == -1){
 		perror("Erreur lors de la création de la socket");
@@ -38,7 +38,7 @@ int main(int argc, char** argv){
 	}
 
 	localAdd.sin_family = AF_INET;
-	localAdd.sin_port = htons(9000);
+	localAdd.sin_port = htons(5600);
 	localAdd.sin_addr.s_addr = INADDR_ANY;
 	memset(localAdd.sin_zero, 0, 8);
 
@@ -49,7 +49,7 @@ int main(int argc, char** argv){
 		return 0;
 	}	
 	
-	/*Adresse du serverAdd distant à joindre*/
+	/*Adresse du serveur distant à joindre*/
 	h_s = gethostbyname(argv[1]);
 	if(h_s == NULL){
 		perror("Erreur : gethostbyname()\n");
@@ -63,10 +63,11 @@ int main(int argc, char** argv){
 	fprintf(stdout," Client Side \n");
 	fprintf(stdout,"-------------\n");
 	sprintf(pid,"%d",getpid());
-	
+	strcpy(message1,argv[3]);
+
 	/*Envoi des données au serveur*/
 	fprintf(stdout,"Sent :\n");
-	sendto(cSocket, (void *) argv[3], sizeof(argv[3]), 0, (struct sockaddr*) &serverAdd, sizeof(serverAdd));
+	sendto(cSocket, (void *) message1, sizeof(message1), 0, (struct sockaddr*) &serverAdd, sizeof(serverAdd));
 	sendto(cSocket, (void *) pid, sizeof(pid), 0, (struct sockaddr*) &serverAdd, sizeof(serverAdd));
   	fprintf(stdout,"\tMessage : %s\n",argv[3]); 
 	fprintf(stdout,"\tClient PID : %s\n",pid); 
